@@ -1,0 +1,41 @@
+# PCA plots
+
+## Create function for PCA plots comparing PC1 and PC2
+
+# accepts a vector of groups, returns a PCA plot for PC1 vs PC2
+make_pc1_pc2 = function(colour_groups, e_data)
+{
+
+# load packages
+library(ggplot2)
+library(reshape2)
+  
+  ## REMEMBER TO DELETE
+  #colour_groups = ss_per_patient$sample_group
+  #e_data = em
+  
+  # scale data
+  e_data_scaled = na.omit(data.frame(t(scale(t(e_data)))))
+  
+  
+  # run PCA
+  xx = prcomp(t(e_data_scaled))
+  pca_coordinates = data.frame(xx$x)
+  
+  # get % variation for x and y axis labels
+  vars = apply(xx$x, 2, var)
+  prop_x = round(vars["PC1"] / sum(vars),4) * 100
+  prop_y = round(vars["PC2"] / sum(vars),4) * 100
+  x_axis_label = paste("PC1 (" ,prop_x, "%)", sep="")
+  y_axis_label = paste("PC2 (" ,prop_y, "%)", sep="")
+  
+  # plot and add x and y axis labels
+  ggp_pca = ggplot(pca_coordinates, aes(x=PC1, y= PC2, colour = colour_groups)) +
+    geom_point(size = 3) +
+    labs(title = "PCA plot comparing PC1 and PC2 coloured by days survived low vs high", x= x_axis_label, y= y_axis_label) +
+    theme_bw()
+  
+  ggp_pca
+  return(ggp_pca)
+}
+
