@@ -1,0 +1,71 @@
+make_heatmap = function(e_data, genes)
+{
+  ### REMEMBER TO DELETE, ONLY FOR GETTING X.ORDER
+  #e_data = em
+  #genes = signature_6
+  
+  # create e_data sig
+  e_data = e_data[genes,]
+  
+  # create e_data symbols scaled
+  e_data_scaled = na.omit(data.frame(t(scale(t(e_data)))))
+  
+  #Makes e_data a matrix
+  hm.matrix = as.matrix(e_data_scaled)
+  
+  
+  # does the y clustering
+  y.dist = Dist(hm.matrix, method="euclidean")
+  y.cluster = hclust(y.dist, method="average")
+  y.dd = as.dendrogram(y.cluster)
+  y.dd.reorder = reorder(y.dd,0,FUN="average")
+  y.order = order.dendrogram(y.dd.reorder)
+  
+  # does the x clustering
+  x.dist = Dist(t(hm.matrix), method="euclidean")
+  x.cluster = hclust(x.dist, method="average")
+  x.dd = as.dendrogram(x.cluster)
+  x.dd.reorder = reorder(x.dd,0,FUN="average")
+  x.order = order.dendrogram(x.dd.reorder)
+  
+  # include the y and x orders here
+  hm.matrix_clustered = hm.matrix[y.order,x.order]
+  
+  # melt and plot
+  hm.matrix_clustered = melt(hm.matrix_clustered)
+  
+  # colour palette
+  colours = c("purple","black","yellow")
+  palette = colorRampPalette(colours)(100)
+  
+  # plot
+  ggp = ggplot(hm.matrix_clustered, aes(x=Var2, y=Var1, fill=value)) + 
+    geom_tile() + 
+    scale_fill_gradientn(colours = palette) + 
+    labs(x="", y="") + 
+    theme(legend.title = element_blank(), legend.spacing.x = unit(0.25, 'cm'), axis.text.y = element_blank(), axis.text.x = element_blank(), axis.ticks=element_blank())
+  
+
+  return(ggp)
+}
+
+# make rug
+## USES X.ORDER FROM THE HEATMAP FUNCTION TO MATCH X AXIS
+
+# Reorder the rug data according to x.order
+rug_data = data.frame(
+  Sample = colnames(hm.matrix)[x.order],  # Reordered sample names
+  SampleGroup = ss_$sample_group[x.order]  # Reordered sample groups
+)
+
+# Convert Sample to a factor with the correct order
+rug_data$Sample = factor(rug_data$Sample, levels = rug_data$Sample)
+
+# Plot the rug
+ggp.rug = ggplot(rug_data, aes(x = Sample, y = 1, fill = SampleGroup)) +
+  geom_tile() +
+  scale_fill_manual(values = c("GB_1" = "red", "GB_2" = "blue", "HC" = "green")) +
+  theme_void() #+
+  #theme(legend.position = "none")
+
+ggp.rug
