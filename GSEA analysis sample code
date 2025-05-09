@@ -1,0 +1,177 @@
+## GSEA analysis
+
+## Gioblastoma 2 vs HC differential expression table
+
+### GSEA organise by log2fold
+
+## Sort the table by the maximum log2fold value across two columns (log2fold.gb_1_vs_hc and log2fold.gb_2_vs_hc)
+de_gb_2_vs_hc_gsea = subset(de_gb_2_vs_hc, (de_gb_2_vs_hc$sig == TRUE))
+de_gb_2_vs_hc_gsea = de_gb_2_vs_hc_gsea[order(-abs(de_gb_2_vs_hc_gsea$log2fold)), ]
+
+
+### Add fold change to GSEA input
+
+gsea_input = de_gb_2_vs_hc_gsea$log2fold
+
+
+### Add names
+
+names(gsea_input) = row.names(de_gb_2_vs_hc_gsea)
+
+
+### Omit NA values
+
+gsea_input = na.omit(gsea_input)
+
+
+### Sort in decreasing order
+
+gsea_input = sort(gsea_input, decreasing = TRUE)
+
+
+
+
+### Run GSEA
+
+gsea_results = gseGO(geneList = gsea_input,
+                     ont = "BP", 
+                     keyType = "SYMBOL",
+                     nPerm = 10000,
+                     minGSSize = 3,
+                     maxGSSize = 800,
+                     pvalueCutoff = 0.05,
+                     verbose = TRUE,
+                     OrgDb = org.Hs.eg.db,
+                     pAdjustMethod = "none")
+
+### Create plot
+
+ggp_gsea_gb2_vs_hc = ridgeplot(gsea_results, showCategory = 15) +
+  theme(axis.text.y = element_text(size = 6))+
+  labs(title = "GSEA ridgeplot of the 15 most enriched pathways comparing GB_2 to HC", x = "NES", y = "Enriched Pathways")
+
+ggp_gsea_gb2_vs_hc
+
+### save dotplot
+
+pdf("C:/Users/files/ridge_gb2_vs_hc.pdf", height = 8, width = 8)
+print(ggp_gsea_gb2_vs_hc)
+dev.off()
+
+
+## GB 1 vs HC
+
+### GSEA organise by log2fold
+
+## Sort the table by the maximum log2fold value across two columns (log2fold.gb_1_vs_hc and log2fold.gb_2_vs_hc)
+de_gb_1_vs_hc_gsea = subset(de_gb_1_vs_hc, (de_gb_1_vs_hc$sig == TRUE))
+de_gb_1_vs_hc_gsea = de_gb_1_vs_hc_gsea[order(-abs(de_gb_1_vs_hc_gsea$log2fold)), ]
+
+
+### Add fold change to GSEA input
+
+gsea_input = de_gb_1_vs_hc_gsea$log2fold
+
+
+### Add names
+
+names(gsea_input) = row.names(de_gb_1_vs_hc_gsea)
+
+
+### Omit NA values
+
+gsea_input = na.omit(gsea_input)
+
+
+### Sort in decreasing order
+
+gsea_input = sort(gsea_input, decreasing = TRUE)
+
+
+
+### Run GSEA
+
+gsea_results = gseGO(geneList = gsea_input,
+                     ont = "BP", 
+                     keyType = "SYMBOL",
+                     nPerm = 10000,
+                     minGSSize = 3,
+                     maxGSSize = 800,
+                     pvalueCutoff = 0.05,
+                     verbose = TRUE,
+                     OrgDb = org.Hs.eg.db,
+                     pAdjustMethod = "none")
+
+### Create plot
+
+ggp_gsea_gb1_vs_hc = ridgeplot(gsea_results, showCategory = 15) +
+  theme(axis.text.y = element_text(size = 6))+
+  labs(title = "GSEA ridgeplot of the 15 most enriched pathways comparing GB_1 to HC", x = "NES", y = "Enriched Pathways")
+
+ggp_gsea_gb1_vs_hc
+
+
+### Save plot
+
+pdf("C:/Users/files/Assessment files/ridge_gb1_vs_hc.pdf", height = 8, width = 8)
+print(ggp_gsea_gb1_vs_hc)
+dev.off()
+
+
+## GB 2 vs GB 1
+
+### GSEA organise by log2fold
+
+## Sort the table by the maximum log2fold value across two columns (log2fold.gb_1_vs_hc and log2fold.gb_2_vs_hc)
+de_gb_2_vs_gb_1_gsea = subset(de_gb_2_vs_gb_1, (de_gb_2_vs_gb_1$sig == TRUE))
+de_gb_2_vs_gb_1_gsea = de_gb_2_vs_gb_1_gsea[order(-abs(de_gb_2_vs_gb_1_gsea$log2fold)), ]
+
+
+### Add fold change to GSEA input
+
+gsea_input = de_gb_2_vs_gb_1_gsea$log2fold
+
+
+### Add names
+
+names(gsea_input) = row.names(de_gb_2_vs_gb_1_gsea)
+
+
+### Omit NA values
+
+gsea_input = na.omit(gsea_input)
+
+
+### Sort in decreasing order
+
+gsea_input = sort(gsea_input, decreasing = TRUE)
+
+
+
+
+### Run GSEA
+
+gsea_results = gseGO(geneList = gsea_input,
+                     ont = "BP", 
+                     keyType = "SYMBOL",
+                     nPerm = 10000,
+                     minGSSize = 3,
+                     maxGSSize = 800,
+                     pvalueCutoff = 0.05,
+                     verbose = TRUE,
+                     OrgDb = org.Hs.eg.db,
+                     pAdjustMethod = "none")
+
+### Create plot
+
+ggp_gsea_gb2_vs_gb_1 = ridgeplot(gsea_results, showCategory = 15) +
+  theme(axis.text.y = element_text(size = 6))+
+  labs(title = "GSEA ridgeplot of the 15 most enriched pathways comparing GB_2 and GB_1", x = "NES", y = "Enriched Pathways")
+
+ggp_gsea_gb2_vs_gb_1
+
+### Save plot
+
+pdf("C:/Users/files/Assessment files/ridge_gb2_vs_gb1.pdf", height = 8, width = 8)
+print(ggp_gsea_gb2_vs_gb_1)
+dev.off()
