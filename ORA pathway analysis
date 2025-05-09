@@ -1,0 +1,54 @@
+# Pathway function
+
+do_pathway = function(organism_db, genes)
+  
+{
+  
+  # libraries
+  
+  library(clusterProfiler)
+  
+  # Create the list to store the results
+  
+  
+  
+  # converts from ensembl Symbols to Entrez
+  
+  sig_genes_entrez = bitr(genes, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = organism_db)
+  
+  
+  # gets the enrichment
+  
+  pathway_data = enrichGO(gene = sig_genes_entrez$ENTREZID,OrgDb = organism_db, readable = T,ont = "BP", pvalueCutoff = 0.05, qvalueCutoff = 0.10)
+  
+  
+  # extract the enrichment table from go enrich
+  
+  gene_sets = pathway_data$geneID
+  
+  description = pathway_data$Description
+  
+  p.adj = pathway_data$p.adjust
+  
+  ora_results = data.frame(cbind(gene_sets, description, p.adj))
+  
+  
+  # Create plots
+  
+  gg.barplot = barplot(pathway_data, showCategory = 10)
+  gg.dotplot = dotplot(pathway_data, showCategory = 10)
+  
+  # store data, ggp.barplot, ggp.dotplot & ora_results
+  results = list("data" = list(), "plots" = list())
+  
+  results$data$pathway_data = pathway_data
+  results$data$ora_results = ora_results
+  
+  results$plots$gg.barplot = gg.barplot
+  results$plots$gg.dotplot = gg.dotplot
+  
+  # return the results
+  
+  return(results)
+  
+}
