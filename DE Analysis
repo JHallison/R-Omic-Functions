@@ -1,0 +1,253 @@
+
+## function that performs a differential expression analysis and returns a DE object.
+
+# e_data = expression table
+# anno = annotations table
+# de = differential expression table
+# ss_data = sample sheet
+
+# requires exactly the column names in the ss_data: sample_group, with the sample names as row IDs
+# requires exactly the column names in the DE: log2fold, p, p.adj
+# requires the gene IDs to be the row IDs in the ANNO, e_data and DE tables
+# requires the column names of e_data to exactly match row names of ss_data
+
+do_DE = function(e_data, de, ss_data)
+  
+{
+  
+  ### REMEMBER TO DELETE, ONLY USE FOR GETTING X.ORDER TO CREATE RUG
+  #e_data = em
+  #de = de_gb_2_vs_gb_1
+  #ss_data = ss_per_patient
+  
+  # setup a list object, to store all our results
+  de_object = list("data" = list(), "plots" = list())
+  
+  
+  #create master
+  master_de = merge(de, em, by.x = 0, by.y = 0)
+  #master = merge(master, ss_data, by.x = 1, by.y = 0)
+  
+  # re_data remove nas
+  master_de = na.omit(master_de)
+  
+  # update names
+  row.names(master_de) = master_de[,"Row.names"]
+  names(master_de)[1] = "symbol"
+  #names(master)[1] = "ENSe_dataBL"
+  
+  # create e_data symbols
+  e_data_symbols = master_de[,row.names(ss_data)]
+  
+  # sort by p
+  master_de = master_de[order(master_de[,"p"]),]
+  
+  # create new columns
+  master_de$mean = rowMeans(master_de[,row.names(ss_data)])
+  master_de$sig = as.factor(master_de$p.adj < 0.05 & abs(master_de$log2fold) > 1)
+  master_de$mlog10p = -log10(master_de$p.adj)
+  
+  # create sig_genes
+  master_sig = subset(master_de, sig==TRUE)
+  sig_genes = row.names(master_sig)
+  
+  # create e_data symbols scaled
+  e_data_scaled = na.omit(data.frame(t(scale(t(e_data_symbols)))))
+  
+  # create e_data sig
+  e_data_symbols_sig = e_data_symbols[sig_genes,]
+  e_data_scaled_sig = e_data_scaled[sig_genes,]
+  
+  
+  # parse up and down
+  master_up = subset(master_de,p.adj < 0.05 & log2fold > 1)
+  master_down = subset(master_de,p.adj < 0.05 & log2fold < -1)
+  master_up_top5 = master_up[1:5,]
+  master_down_top5 = master_down[1:5,]
+  
+  
+  ## add the tables to the list ####
+  de_object$data$e_data = e_data 
+  de_object$data$ss_data = ss_data
+  de_object$data$de = de
+  de_object$data$sig_genes = sig_genes
+  de_object$data$master_de = master_de
+  de_object$data$master_sig = master_sig
+  de_object$data$e_data_symbols = e_data_symbols
+  de_object$data$e_data_symbols_sig = e_data_symbols_sig
+  de_object$data$e_data_scaled = e_data_scaled
+  de_object$data$e_data_scaled_sig = e_data_scaled_sig
+  de_object$data$master_up = master_up
+  de_object$data$master_up_top5 = master_up_top5
+  de_object$data$master_down = master_down
+  de_object$data$master_down_top5 = master_down_top5
+  
+  
+  ####-- theme --####
+  
+  my_theme = theme(
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    #panel.border = element_rect(colour = "black", fill=NA, size=1),
+    plot.background = element_blank(), 
+    legend.background = element_rect(fill="transparent", colour=NA),
+    legend.key = element_rect(fill="transparent", colour=NA),
+    plot.title = element_text(size=12, margin = margin(b = 5),hjust=0,vjust=0.5, face="bold"),
+    title = element_text(size = 12, margin = margin(b = 5),hjust=0,vjust=0.5, face="bold"),
+    axis.text.y = element_text(size = 11, margin = margin(r = 5),hjust=1,vjust=0.5, face="bold",colour="black"),
+    axis.text.x = element_text(size = 11, margin = margin(t = 5),hjust=0.5,vjust=1, face="bold",colour="black"), 
+    axis.title.y = element_text(size = 12, margin = margin(r = 10),angle = 90,hjust=0.5,vjust=0.5, face="bold"),
+    axis.title.x = element_text(size = 12, margin = margin(t = 10),hjust=0.5,vjust=1, face="bold"),
+    legend.text=element_text(size=12, face="bold"),
+    legend.title=element_blank(), 
+    legend.key.size=unit(1,"line"),
+    plot.margin=unit(c(0.4,0.4,0.4,0.4), "cm"),
+    strip.text.x = element_text(size = 12, family="Arial", face="bold", vjust=1),
+    panel.spacing = unit(1, "lines")
+  )
+  
+  
+  
+  ####-- Volcano With Legend --####
+  
+  # make the plot
+  ggp.volcano = ggplot(master_de, aes(x=log2fold, y=mlog10p)) + 
+    
+    # add the dots
+    geom_point(aes(colour = "a")) +
+    geom_point(data=master_up, aes(colour = "b")) +
+    geom_point(data=master_down, aes(colour = "c")) +
+    
+    # add the data labels
+    geom_label_repel(data=master_up_top5, aes(label=symbol, colour = "b"),  show.legend=FALSE) + 
+    geom_label_repel(data=master_down_top5, aes(label=symbol, colour = "c"), show.legend=FALSE) + 
+    
+    # choose colours and legend names
+    scale_color_manual(values=c("black", "red", "blue"), labels = c("No change", "Up", "Down"), name = "") + 
+    
+    # add the dashed lines
+    geom_vline(xintercept=-1,linetype="dashed") +
+    geom_vline(xintercept=1,linetype="dashed") +
+    geom_hline(yintercept=-log10(0.05),linetype="dashed") +
+    
+    # add the theme and axis names
+    my_theme +
+    labs(title = "Volcano Plot showing singificantly up and downregulated genes from GB 2 vs HC", x= "Log2 fold change", y= "-Log10 p")
+
+
+  
+  ##-- MA With Legend --####
+  
+  # make plot
+  ggp.ma = ggplot(master_de, aes(x=log10(mean), y=log2fold)) + 
+    
+    # adds the dots
+    geom_point(aes(colour = "a")) +
+    geom_point(data=master_up, aes(colour = "b")) +
+    geom_point(data=master_down, aes(colour = "c")) +
+    
+    # choose colours and legend names
+    scale_color_manual(values=c("black", "red", "blue"), labels = c("No change", "Up", "Down"), name = "") + 
+    
+    # adds the fancy lines
+    geom_hline(yintercept=1,linetype="dashed") +
+    geom_hline(yintercept=-1,linetype="dashed") +
+    
+    # adds the theme and axis titles
+    my_theme +
+    labs(title = "MA", x= "Log10 mean express_dataion", y= "Log2 fold change")
+  
+
+  ##-- PCA --####
+  
+  # run PCA
+  xx = prcomp(t(e_data_scaled))
+  pca_coordinates = data.frame(xx$x)
+  
+  # get % variation 
+  vars = apply(xx$x, 2, var)
+  prop_x = round(vars["PC1"] / sum(vars),4) * 100
+  prop_y = round(vars["PC2"] / sum(vars),4) * 100
+  
+  x_axis_label = paste("PC1 (" ,prop_x, "%)", sep="")
+  y_axis_label = paste("PC2 (" ,prop_y, "%)", sep="")
+  
+  
+  # plot
+  ggp.pca = ggplot(pca_coordinates, aes(x=PC1, y= PC2, colour = ss_data$sample_group)) +
+    geom_point() + 
+    labs(title = "PCA", x= x_axis_label, y= y_axis_label) 
+   # my_theme
+  
+  
+  
+  ####-- Facet Boxplot --####
+  
+  # get the gene list
+  candidate_genes = row.names(master_de[1:10,])
+  candidate_genes = c(candidate_genes)
+  
+  # create the table
+  gene_data = e_data_scaled[candidate_genes, ]
+  gene_data = data.frame(t(gene_data))
+  gene_data$groups = ss_data$sample_group
+  
+  # melt
+  gene_data.m = melt(gene_data, id.vars = "groups")
+  
+  # makes the plot
+  ggp.top10.boxplot = ggplot(gene_data.m, aes(x=groups, y=value, fill = groups)) + 
+    geom_boxplot()  + 
+    my_theme + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    facet_wrap(~variable, ncol=5) + 
+    labs(x = "", y = "Express_dataion (z-score)")
+  
+  
+  ####-- Heatmap --#### 
+  
+  # makes a matrix
+  hm.matrix = as.matrix(e_data_scaled_sig)
+  
+  # does the y clustering
+  y.dist = Dist(hm.matrix, method="spearman")
+  y.cluster = hclust(y.dist, method="average")
+  y.dd = as.dendrogram(y.cluster)
+  y.dd.reorder = reorder(y.dd,0,FUN="average")
+  y.order = order.dendrogram(y.dd.reorder)
+  
+  # does the x clustering
+  x.dist = Dist(t(hm.matrix), method="spearman")
+  x.cluster = hclust(x.dist, method="average")
+  x.dd = as.dendrogram(x.cluster)
+  x.dd.reorder = reorder(x.dd,0,FUN="average")
+  x.order = order.dendrogram(x.dd.reorder)
+  
+  # include the y and x orders here
+  hm.matrix_clustered = hm.matrix[y.order,x.order]
+  
+  # melt and plot
+  hm.matrix_clustered = melt(hm.matrix_clustered)
+  
+  # colour palette
+  colours = c("purple","black","yellow")
+  palette = colorRampPalette(colours)(100)
+  
+  # plot
+  ggp.heatmap = ggplot(hm.matrix_clustered, aes(x=Var2, y=Var1, fill=value)) + 
+    geom_tile() + 
+    scale_fill_gradientn(colours = palette) + 
+    labs(title = "Heatmap showing gene expression comparing GB_2 and GB_1", x="", y="Genes") + 
+    theme(legend.title = element_blank(), legend.spacing.x = unit(0.25, 'cm'), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks=element_blank())
+  
+  ## Add plots to results list ####
+  de_object$plots$ggp.volcano = ggp.volcano
+  de_object$plots$ggp.ma = ggp.ma
+  de_object$plots$ggp.pca = ggp.pca
+  de_object$plots$ggp.top10.boxplot = ggp.top10.boxplot
+  de_object$plots$ggp.heatmap = ggp.heatmap
+  
+  
+  ## return the results
+  return(de_object)
+}
